@@ -8,7 +8,7 @@ Features:
 *    Represents mappings from one dimension onto another using any scheme you want (there are three built-in schemes: array, hash and compressed-vector, but you can roll your own and plug it);
 *    Flexible: works with any data type;
 *    Heavily optimized: traversing the tensor can be extremely fast (in one specific situation -- traversing the tensor -- it was 10 times faster than a naive implementation in C++);
-*    Fairly portable: works with SBCL, ABCL, OpenMCL, CMUCL, Clisp, ECL, GCL, XCL, Poplog, LispWorks, and Allegro Common Lisp. But it looks like Spartns does not work with Corman Common Lisp;
+*    Fairly portable: works with SBCL, ABCL, Clisp, ECL, GCL, and XCL.
 *    Spartns is never released without going through regression tests (if a platform breaks and can't be supported, it will be clear in the release announcement);
 *    ASDF installable (thanks Slobodan Blazeski!);
 *    Easy to use, with introductory documentation (not only on-line);
