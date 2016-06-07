@@ -1,0 +1,56 @@
+Functionality:
+- Write a library of functions that do operations on tensors.
+- Add a :include-sparse option to representation scheme traversals
+  (and also to spartn traversals). We'll need to define total dimensions
+  besides the number of non-zeros
+- Check spartn compatibility. For example, get-hcd can't be used with a
+  ccd spartn. We should optionally check for the representation scheme
+- Optionally check bounds? We actually don't even store them currently.
+- Let MAKE-* and some other functions accept a :sparsity-structure
+  parameter
+- Include a default sparse-element that makes sense for most Lisp
+  data types
+
+Optimizations:
+- The HASH scheme could probably be optimized
+- Spartns should optionally generate inline declarations for GET and SET
+  functions
+
+Random:
+- Be more defensive and check types in non-speed-critical parts of the code
+
+Documentation:
+- Produce HTML from documentation strings
+- Expand manual
+
+Possible new representation schemes:
+- Particia trees for each dimension?
+- AVL trees or skip-lists?
+- Chained hash: instead of (gethash i (gethash j data)), we can use
+  (gethash `(,i ,j) data). This could be interleaved with other schemes
+  if we're careful:
+  '(hash cvector chained-hash chained-hash chained-hash array)
+  would produce:
+  HASHTABLE --> CVECTOR --> HASHTABLE --> ARRAY
+  But the keys to the second hashtable would be lists of three indices:
+  (get a b c d e f)
+  (gethash a
+    (get-cvec (gethash (list c d e) b
+      (aref data f))))
+  + We could use the notation
+   (hash cvector (hash 3) array)
+
+Tests:
+- Switch from toy tests to something more systematic (the tests should be
+  designed)
+  + List all possible problems for each function, and add test cases for them
+  + Add more use cases
+- Start doing code coverage analysis
+- Missing tests:
+  + test with ":test-equal EQUAL"
+  + generate random elements, insert and get
+  + try to use the wrong element type
+  + Check if PACK is really working for several dimensions. (Currently the
+    tests verify that nothing breaks by using it, but we can't tell if it
+    really is shrinking all intermediate dimensions)
+

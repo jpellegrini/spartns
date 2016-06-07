@@ -1,0 +1,541 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{listings}
+\lstset{%
+frame=single,
+frameround=tttt,
+keywordstyle=\bfseries,%\underbar,
+stringstyle=\ttfamily,
+showstringspaces=false,%
+basicstyle=\scriptsize\ttfamily\footnotesize\ttfamily,%
+language=Lisp,%
+}
+
+\title{Spartns}
+
+\author{Jerônimo C. Pellegrini}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+Although Common Lisp is usually considered a big language, it has no built-in
+support for sparse matrices or tensors except for hashtables, which can be
+slow and awkward.
+
+Spartns is a sparse array representation library for ANSI Common Lisp.
+It has been built to be very flexible while also being very efficient.
+
+Spartns allows for different dimensions of an array to be represented in different ways:
+
+\begin{itemize}
+\item {\em Hashtables}: although not efficient, this representation scheme was included to illustrate the library's
+      flexibility. Given an index specification $[i j k]$ and en element $e$, we can store the element in a hashtable h
+      indexed by the list \verb+'(i j k)+ by doing \verb+(setf (gethash (list i j k) h) e)+ (Spartns will actually use
+      three hashtables in this case:\\ \verb+(setf (gethash k (gethash j (gethash i h))) e)+);
+\item {\em Compressed vectors}: if we know that the sparsity structure will not change for certain array dimensions,
+      we can represent them as compressed vectors. A compressed vector is a pair of arrays, one for the indices and one
+      for the values. To access an element, we first do a binary search on the indices array, and then access the element
+      in the values array;
+%\item {\em AVL trees}: mapping indices onto elements can also be done using binary search trees. Spartns
+%      includes an implementation of AVL trees;
+\item {\em Plain arrays}: if we know that a specific dimension of the tensor is dense, we can represent that dimension
+      as an array.
+\end{itemize}
+
+Spartns is both flexible and efficient because it was designed to produce macros and functions
+with type declarations for each kind of tensor you specify. For example, if a tensor
+has rank euqal to four, the number of non-zero elements is one hundred in each dimension
+and you want the three first dimensions to be represented as
+hashtables, but the last one as compressed vectors, the element type is double-float,
+and the sparse element is -1, you can define a spartn scheme like this:
+
+\begin{itemize}
+\item representation '(hash hash hash cvector)
+\item non-zeros      '(100  100  100  100)
+\item element-type   double-float
+\item sparse-element -1d0
+\end{itemize}
+
+
+\section{Simple usage instructions}
+
+The macro \verb+defspartn+ creates a new tensor representation type and
+defines functions to get, set and delete elements as well as traverse the
+structure and check the number of non-zero elements. The library uses the
+name {\em ``spartns''} for sparse tensor types.
+
+The first argument to \verb+defspartn+ is a name to the structure. You can, for example,
+define a structure where the first dimension is represented as a hashtable and the second
+as compressed vectors, and the element type is double-float -- and call it ``HCD'':
+
+\begin{lstlisting}
+(defspartn hcd
+    :representation (spartns::hash spartns::cvector)
+    :non-zero       (3 4)
+    :element-type   double-float
+    :sparse-element 0d0)
+    :test-equal     eql
+\end{lstlisting}
+
+The name of the structure will be used to create the functions:
+
+\begin{itemize}
+\item \verb+get-hcd+
+\item \verb+set-hcd+
+\item \verb+delete-hcd+
+\item \verb+copy-hcd+
+\item \verb+pack-hcd+
+\item \verb+traverse-hcd+
+\end{itemize}
+
+The function used to test element equality is \verb+EQL+, but any other could have been used.
+
+Each time a container is created to map one index into the next dimension, it is created with
+the size specified by the \verb+non-zero+ parameter. So, for the example above the \verb+(3 4)+
+argument to \verb+non-zero+ means that:
+
+\begin{itemize}
+\item The first dimension is a hashtable that is created as \verb+(MAKE-HASH-TABLE+ 
+      \verb+:SIZE 3)+;
+\item For each index in the first dimension that is set, a cvector is created with size 4.
+\end{itemize}
+
+\begin{lstlisting}
+(let ((mat (make-hcd)))
+  (set-hcd 1 2 5d0)
+  (get-hcd 1 2)    ; returns 5d0
+  (get-hcd 1 1)    ; returns 0d0, the sparse element
+  (traverse-hcd ((i j) val mat)
+    (format t "mat[~a ~a]=~a~%" i j value)))
+\end{lstlisting}
+
+The \verb+traverse-hcd+ macro was created to traverse \verb+hcd+ structures. The symbols i and j
+will be bound to dimension indices; val will be bound to the value stored at (i,j), and mat
+is the HCD-structure.
+
+Besides those, there is also the macro \verb+spartn-convert+, which converts between structures:
+
+\begin{lstlisting}
+(defspartn ccd
+    :representation (spartns::cvector spartns::cvector)
+    :non-zero       (3 4)
+    :element-type   double-float
+    :sparse-element 0d0
+    :def            T)
+
+(let ((mat (make-hcd)))
+  (set-hcd 1 2 5d0)
+  (set-hcd 1 1 2d0)
+  (let ((new-mat (spartn-convert mat
+                                 :from hcd
+				 :to ccd
+				 :destructuve t)))
+    (traverse-ccd ((i j) value new-mat)
+      (format t "new-mat[~a ~a]=~a~%" i j value))))
+\end{lstlisting}
+
+The \verb+DEF+ parameter for \verb+defspartn+ means that you want it to immediately create the functions
+and macros that you will use to access the tensors.
+
+The macro \verb+w/spartn+ creates local
+functions (with \verb+LABELS+ instead of \verb+DEFUN+), and will allow you to include aliases
+for spartn schemes:
+
+\begin{lstlisting}
+(w/spartn (cchd)
+  (let ((m make-cchd))
+  (set-cchd i j k 10.5)
+  ...)
+\end{lstlisting}
+
+If you use \verb+w/spartns+ you don't need to set \verb+DEF+ to \verb+T+ in \verb+defspartn+,
+because \verb+w/spartns+ will create local functions and macros with \verb+LABELS+ and \verb+MACROLET+.
+
+\subsection{Traversals}
+
+When \verb+defspartns+ is used to create a new structure, a macro is also created to traverse it.
+
+\begin{lstlisting}
+(defspartn 2dmat
+  :representation (cvector array)
+  :element-type   symbol
+  :sparse-element 'NOTHING
+  :def            T)
+\end{lstlisting}
+
+Any object created with \verb+make-2dmat+ can be traversed with \verb+traverse-2dmat+:
+
+\begin{lstlisting}
+(let ((mat (make-2dmat)))
+  (set-2dmat mat 0 3 'X)
+  (set-2dmat mat 1 2 'Y)
+  (traverse-2dmat ((a b) val mat)
+      (format t "mat[~a ~a] = ~a~%" a b val)))
+\end{lstlisting}
+
+The output from the code above is
+
+\begin{lstlisting}
+mat[0 3] = X
+mat[1 2] = Y
+\end{lstlisting}
+
+\subsubsection{Partial traversals (keeping some indices fixed)}
+
+When traversing, it is possible to keep some indices fixed while
+traversing over the others. For example, this
+
+\begin{lstlisting}
+(let ((j 5))
+  (traverse-3dmatrix ((i j k) v mat :dont-bind j)
+    (format t "mat[~a ~a ~a] = a~%" i j k v)))
+\end{lstlisting}
+
+will show all values of $mat[i j k]$ for all $i$ and $k$, $\underline{ \texttt{with } j=5}$.
+
+\subsection{Traversing multiple tensors}
+
+You may want to traverse several tensors at once. For example, matrix multiplication
+can be described as this:
+
+\begin{lstlisting}
+(w/spartn-traversals ((ccd X m n val-x)
+                      (ccd Y n o val-y))
+  (set-ccd Z m o (+ (get-ccd Z m o)
+                    (* val-x val-y))))
+\end{lstlisting}
+
+That will be expanded into:
+
+\begin{lstlisting}
+(TRAVERSE-CCD ((M N) VAL-X X)
+  (TRAVERSE-CCD ((#:Y-N-3942 K) VAL-Y Y)
+    (WHEN (AND (EQL N #:Y-N-3942))
+      (PROGN
+        (SET-CCD* Z M O
+          (+ (GET-CCD* Z M O)
+             (* VAL-X VAL-Y))))))
+\end{lstlisting}
+
+Note that there will be an implicit \verb+PROGN+ around the traversal body.
+
+It is clear from the expanded code above that thisis not best way to do the traversals: the code
+runs through all elements of all tensors, even when indices don't match, and uses \verb+WHEN+
+to skip the body. Spartns currently does not support faster traversals, but this is planned for
+future releases.
+
+\subsection{SETF-able values when traversing}
+
+During traversals you can \verb+SETF+ the value:
+
+\begin{lstlisting}
+(w/spartn-traversals ((ccd X m n val-x)
+                      (ccd Y n o val-y))
+  (setf val-y (some-function)))
+\end{lstlisting}
+
+
+\subsection{Traversing multiple tensors, repeatedly}
+
+If you know that the sparsity structure of your tensors will not change and you need to
+traverse them several times, you may try the macro \verb+w/fast-traversals+.
+It will call \verb+w/spartn-traversals+ once, collecting only the elements that are non-zero
+for all index combinations into arrays, and later traverse only those arrays.
+The syntax is the same as for \verb+w/spartn-traversals+:
+
+\begin{lstlisting}
+(w/fast-traversals ((ccd X m n val-x)
+                    (ccd Y n o val-y))
+  (while (not (converged))
+    ...))
+\end{lstlisting}
+
+Fast traversals are different from normal traversals in some aspects:
+
+\begin{itemize}
+\item There is a setup overhead, while the sparsity structure is
+      learned (all tensors are traversed once). After that, only
+      their intersection will be traversed;
+\item Values are not \verb+SETF+-able during traversals.
+\end{itemize}
+
+\subsection{From a dynamic representation to a static one}
+
+If you want to include an unknown number of elements in a tensor, you can:
+
+\begin{itemize}
+\item Add elements to a tensor represented as \verb+CVECTOR+. In this case,
+      you should add indices in order, or this process may take a long time
+      (adding indices out of order makes Spartns re-arrange the internal vector
+      repeatedly to keep indices sorted);
+\item Use the \verb+HASH+ scheme. It may or may not be fast, depending on your
+      Lisp implementation;
+\item Add elements to a tensor represented as \verb+HASH+, and later convert to
+      \verb+CVECTOR+ for fast traversals. This second approach is described in the
+      rest of this subsection.
+\end{itemize}
+
+You can create the static spartn type with an approximate number for \verb+:non-zero+:
+
+\begin{lstlisting}
+(defspartn static-2d
+  :representation (cvector cvector)
+  :non-zero       (200 200)
+  :resize-amount  30
+  :sparse-element 0d0
+  :element-type   double-float)
+\end{lstlisting}
+
+The \verb+resize-amount+ parameter is the amount by which compressed vectors will
+grow after they run out of space. If you set it too high, you may need more memory.
+If you set it too low, Spartns will keep resizing vectors too often. Another
+way to specify how each cvector grows is by using the \verb+resize-function+:
+
+\begin{lstlisting}
+(defspartn static-2d
+  :representation  (cvector cvector)
+  :non-zero        (200 200)
+  :resize-function (lambda (n) (* 2 n))
+  :sparse-element  0d0
+  :element-type    double-float)
+\end{lstlisting}
+
+The example above will double the size of a cvector when it is full.
+
+Then you can convert from dynamic to static and pack the static representation,
+so the extra memory can be freed:
+
+\begin{lstlisting}
+(let ((static-mat (spartn-convert dyn-mat
+                                 :from dyn-2d
+                                 :to   static-2d
+                                 :destructive T)))
+  (setq static-mat (pack-static-2d MAT))
+  ...)
+\end{lstlisting}
+
+\section{Creating new representation schemes}
+
+Besides the two representation schemes that come out-of-the-box with Spartns 
+(\verb+cvector+ and \verb+hash+),
+you can add any other by using the \verb+defscheme+ macro. This is how the \verb+hash+ scheme
+was added:
+
+\begin{lstlisting}
+(defscheme :name     hash
+           :type     hash-table
+           :make     (make-hash-table :size size)
+	   :get      (gethash index data sparse-element)
+	   :set      (setf (gethash index data) value)
+	   :delete   (remhash index data)
+	   :traverse (do-traverse-hash (index value data) body)
+	   :pack     (values) ; we don't pack hashtables
+	   :capacity (values most-positive-fixnum)
+	   :count    (hash-table-count data))
+\end{lstlisting}
+
+Please see the online documentation for \verb+defscheme+.
+
+\subsection{Representetion schemes}
+
+The current version of Spartns supports these representation schemes:
+
+\begin{itemize}
+\item \verb+HASH+: may have good performance, depending on your Lisp implementation. Elements can be
+      inserted in any order without affecting performance;
+\item \verb+CVECTOR+: may be very fast, depending on your Lisp implementation. Inserting elements out of
+      index order is very slow;
+%\item \verb+FAVL+: purely Functional AVL trees. This is very compact code implementing AVL trees, using Lisp
+%      lists. This code has no side effects, so performance of insert and delete will probably depend a lot
+%      on your garbage collector;
+\item \verb+ARRAY+: theoretically, the fastest representation scheme (but hashtables can be faster, depending on
+      your Lisp implementations). You can insert elements in any order, but the indices
+      in each dimension {\em must} be from 0 to N-1, and you cannot change the dimension size.
+\end{itemize}
+
+For the two first schemes, the \verb+:non-zero+ field has the same meaning: the number of non-zero elements in
+that dimension. For \verb+ARRAY+, it actually means the maximum capacity.
+
+\section{Performance}
+
+The choice of representation scheme depends a lot on your implementation of Lisp.
+The \verb+hash+ scheme can be faster or slower than \verb+cvector+: on CLisp and
+ABCL, \verb+hash+ is faster; on SBCL and GCL, \verb+cvector+ is faster.
+I suggest that you run the micro-benchmarks that come with Spartns in order to determine
+what representation scheme will be the best (of course, your application is also a
+good benchmark!)
+
+When you tell \verb+defspartn+ to create functions and macros for you, then the result of
+the \verb+get-+ function will be boxed. Using \verb+w/spartns+ defines local functions, so
+there doesn't need to be boxing (this probably depends on your Lisp implementation,
+actually... But it's true for SBCL).
+
+Optimizing your use of Spartns can be summarized as follows.
+
+\begin{itemize}
+\item Start without the \verb+declare+ argument. The default is
+      \verb+(optimize+ \verb+(speed 3)+ \verb+(safety 1))+, which will allow you to check
+      if the application is functioning correctly before you optimize. After that
+      you can use \verb+(safety 0)+ if you want;
+\item Profiling Spartns is tricky. If you use \verb+w/spartns+, your implementation
+      may not profile the local calls. If you tell \verb+defspartn+ to generate
+      \verb+DEFUNs+, the overhead of the non-local function call will be profiled, when
+      it wouldn't be present if you used \verb+w/spartns+. Keep all this in mind,
+      and do profile anyway;
+\item Check what representation scheme works best for you. Also check wether it's
+      better to use GET/SET or to TRAVERSE the tensors;
+\item Once you are confident that your program is correct and that you have found the
+      right representation scheme for your tensors, call \verb+defspartn+ with
+      \verb+def = NIL+ and use \verb+w/spartns+;
+\item If you know that you need a different representation scheme because of cache and
+      locality issues, for example, you can add your own.
+\end{itemize}
+
+\section{Tests}
+
+To run the tests, just load the \verb+do-tests.lisp+ file. The tests are certainly not
+``for real'' and need a lot of work, but they have been useful to detect some basic problems.
+
+\section{Internals}
+
+Spartns makes heavy use of macros, because it is basically a Lisp code generator. Because of
+this, understanding the code can be difficult for someone not used to writing ``metacode''.
+
+\subsection{Representations}
+
+Each mapping from fixnums onto objects can be represented in several different ways.
+These are called {\em representation schemes}, and each scheme is described in a
+structure and stored in a hashtable in the special variable \verb+*representation-schemes*+.
+
+Representation schemes are defined using the \verb+defscheme+ macro, which stores
+the description of the scheme in the scheme database.
+
+This:
+
+\begin{lstlisting}
+(defscheme :name     hash
+           :type     hash-table
+           :make     (make-hash-table :size size)
+	   :get      (gethash index data sparse-element)
+	   :set      (setf (gethash index data) value)
+	   :delete   (remhash index data)
+	   :traverse (do-traverse-hash (index value data) body)
+	   :capacity (values most-positive-fixnum)
+	   :count    (hash-table-count data))
+\end{lstlisting}
+
+Will create a hashtable that maps \verb+NAME+ to \verb+HASH+, \verb+TYPE+ to \verb+HASH-TABLE+, and so on,
+and add this to the hashtable in the variable \verb+*representation-schemes*+, under
+the key \verb+HASH+.
+
+Representation schemes can map fixnums onto objects only, so they can only be used
+for one dimension. The functions that operate on representation schemes can be
+combined in order to access structures composed of several dimensions. These are
+the chained-functions (\verb+chained-get+, \verb+chained-set+, etc).
+
+The chained-functions produce textual Lisp code that can be used to access
+tensors of an arbitrary number of dimensions. This code is used by the functions
+\verb+define-spartn-*+, which will produce the full \verb+DEFUN+ form.
+
+The \verb+defspartn+ macro adds a spartn scheme to the hashtable in
+\verb+*spartn-schemes*+ and optionally calls \verb+DEFUN+ and \verb+DEFMACRO+ to create the functions
+and macros to access the new scheme.
+
+As an example,
+
+\begin{lstlisting}
+(defspartn my-scheme
+           :representation (spartns:hash spartns:cvector)
+	   :non-zero       (10 20)
+	   :element-type   single-float
+	   :sparse-element 0.0
+	   :def            T
+	   :declare        (optimize (speed 3) (safety 0)))
+\end{lstlisting}
+
+Is expanded as:
+
+\begin{lstlisting}
+(DEFUN make-my-scheme () ...)
+(DEFUN get-my-scheme (data index-1 index-2) ...)
+(DEFUN set-my-scheme (data index-2 index-2 value) ...)
+(DEFUN delete-my-scheme (data index-1 index-2) ...)
+(DEFUN copy-my-scheme (data) ...)
+(DEFMACRO traverse-myscheme (index-list value data &body body) ...)
+\end{lstlisting}
+
+And has the side-effect of adding this structure:
+
+\begin{lstlisting}
+#S(SPARTNS:SPARTN-SCHEME
+   :representation (spartns:hash spartns:cvector)
+   :non-zero       (10 20)
+   :element-type   single-float
+   :sparse-element 0.0
+   :declare        (optimize (speed 3) (safety 0)))
+\end{lstlisting}
+
+to the hashtable in the special variable \verb+*spartn-schemes*+.
+
+However, \verb+defspartn+ would have {\em not} expanded as the series of \verb+DEFUN+s and
+\verb+DEFMACRO+ if the \verb+:def+ key parameter was set to \verb+NIL+ (but it would still have the side
+effect of adding the scheme to \verb+*spartn-schemes*+.
+
+The macro \verb+w/spartns+ retrieves a spartn scheme from the database and creates local
+functions and macros using \verb+LABELS+ and \verb+MACROLET+.
+
+\begin{lstlisting}
+(w/spartns (my-scheme)
+  (let ((mat (make-my-scheme)))
+    (set-my-scheme mat 1 2 5.5)))
+\end{lstlisting}
+
+Is expanded as:
+
+\begin{lstlisting}
+(LABELS ((make-my-scheme () ...)
+         (get-my-scheme (data index-1 index-2) ...)
+	 (set-my-scheme (data index-1 index-2 value) ...)
+	 (delete-my-scheme (data index-1 index-2) ...)
+	 (copy-my-scheme (data) ...)
+  (MACROLET ((traverse-myscheme
+               (index-list value data &body body) ...)
+    (set-my-scheme mat 1 2 5.5)))
+\end{lstlisting}
+
+\subsection{Coding style}
+
+The style used in Spartns is not conventional in some aspects.
+
+I use a large monitor and like to see as many lines of code as possible, so
+I do not break lines at 72 columns. I will probably reformat Spartns so more
+people can comfortably read the code.
+
+I use key arguments in functions where there are several parameters and
+there is non-trivial recursion, because it makes the recursive call easier
+to read. The \verb+chained-*+ functions are like this.
+
+The \verb+expand-scheme+ function can look a bit strange at first, but the
+example in the online documentation should help understand it.
+
+One thing that I do agree to be ugly is the definition of binary-search as
+a macro (for efficiency). This was such a critical part of the code that I
+decided to just do that (inlining doesn't necessarily work, because the binary-search
+code needs type declarations -- which the macro inserts).
+There is actually a function that will produce an optimized binary-search function,
+but it's not ready yet.
+
+Another not-so-elegant thing is the overuse of \verb+LET+ and \verb+LET*+. Sometimes it
+looks as if most of the work in a function is done inside the bindings of a
+\verb+LET*+ form (see \verb+create-next-dim+ for example).
+
+I should also come up with a small meta-library for creating functions. Right now
+Spartns has lots of {\em ad-hoc} code to create several functions and macros.
+
+\end{document}
+

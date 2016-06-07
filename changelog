@@ -1,0 +1,234 @@
+Changelog for Spartns
+=====================
+
+Version numbers are in the format A.B.C; the meaning of changes
+in each position is:
+
+A: incompatible changes or major new features
+B: new features
+C: bugfixes and cleanups
+
+(This was not the case until 0.0.3)
+
+1.4.4 - 07 Jun 2016
+-------------------
+	* Replaced the previous recursive binary search algorithm. It's
+	  now nonrecursive (it seems that some CL implementations really
+	  don't optimize tail calls)
+	* Added mising docstrings to utils.lisp
+	* Reworked benchmark.lisp with suggestion from Juanjo of ECL. Also
+	  fixed a non-serious problem (the names of two twin benchmarks
+	  were swapped: traverse-*-set and traverse-*-get)
+	* Cleaned up utils.lisp
+
+1.4.3 - 09 Oct 2009
+-------------------
+	* The docstring issue in XCL has been fixed by Peter Graves!
+	  Now all type declarations and optimize settings are used on
+	  all Common Lisps (the #-xcl hack has been removed!).
+
+1.4.2 - 07 Oct 2009
+-------------------
+	* Cleaned up tests
+
+1.4.1 - 11 Aug 2009
+-------------------
+	* Fixed robust-adjust-array so it works without the element-type
+	  argument; also fixed some typos in the documentation.
+	* Include full text of GPL, LGPL and LLGPL, so there is absolutely
+	  zero information missing for users.
+
+1.4.0 - 11 Mar 2009
+-------------------
+	* Keeping an index fixed now also works with fast-traversals
+
+1.3.0 - 28 Feb 2009
+-------------------
+	* It is now possible to traverse while keeping indices fixed.
+	  For example,
+	  (setf i 10)
+	  (traverse-3dmatrix ((i j k) val matrix :dont-bind (i))
+	    ...)
+	  will traverse the two rightmost dimensions of matrix
+	  (j, k). i will not be bound, so it will be fixed as
+	  10.
+	* Document the fact that the ARRAY and HASH schemes are
+	  actually also SETFable while being traversed (and
+	  include this as a test case).
+	* Document the fact that Spartns works with Scieneer Common
+	  Lisp (except for the benchmarks)
+
+1.2.7 - 05 Oct 2008
+-------------------
+	* When traversing CVECTORs, values are now SETFable. (This
+	  is not true for other schemes). Documented in manual.
+
+1.2.6 - 01 Oct 2008
+-------------------
+	* Remove debugging function call...
+	* Expanded and clarified some online documentation strings
+
+1.2.5 - 01 Oct 2008
+-------------------
+	* Another attempt to fix w/fast-traversals, including better
+	  documentation.
+
+1.2.4 - 18 Sep 2008
+-------------------
+	* Fixed bugs in w/fast-traversals (thanks once again to Yves
+          Vandriessche!)
+	* Fix example of w/spartn-traversals usage in the manual
+	* Also did some cosmetic changes in the manual
+
+1.2.3 - 29 Aug 2008
+-------------------
+	* Fixes off-by-one bug found by Yves Vandriessche in w/fast-traversals
+	* Some internal cleanup
+	* Small updates to documentation: mention MCL, plus some
+	  other additions
+
+1.2.2 - 29 Jun 2008
+-------------------
+	* Removed some assertions that were causing problems 
+	  with GCL
+
+1.2.1 - 29 Jun 2008
+-------------------
+	* Removed old entries from TODO file
+	* Updated and cleaned up the manual
+
+1.2.0 - 29 Jun 2008
+-------------------
+	* New feature: besides resize-amount, it's now possible to
+	  pass a resize-function to defspartn (for example, you can
+	  double the size of a CVECTOR each time it gets full. You
+	  would then use:resize-function (lambda (x) (* 2 x))).
+	  So, "resize-amount 10" is the same as
+	  "resize-function (lambda (x) (+ x 10))"
+	* Fixed bug when non-zero-list was ommited. Thanks a
+	  lot to Yves Vandriessche for sending a detailed bug
+	  analysis!
+	* Small changes to online documentation
+	* Fixed thinko in PDF manual (thanks Yves Vandriessche)
+
+1.1.6 - 07 Apr 2008
+-------------------
+	* Load lisp-unit before using it
+
+1.1.5 - 07 Apr 2008
+-------------------
+	* Fix silly bug in ASDF file
+	* Some small enhancements to the manual
+	* Document the fact that Spartns does not work with Corman
+	  Common Lisp
+
+1.1.4 - 05 Apr 2008
+-------------------
+	* Spartns now works with Clozure Common Lisp
+	* Fixed symbol generation again (and thanks again to Francis
+	  Leboutte)
+	* Don't require lisp-unit and test suites for ordinary use
+	  (reported by Francis Leboutte)
+
+1.1.3 - 01 Apr 2008
+-------------------
+	* Traversals on the HASH scheme have been optimized
+
+1.1.2 - 31 Mar 2008
+-------------------
+	* Include spartns.asd (oops!)
+
+1.1.1 - 31 Mar 2008
+-------------------
+	* Small optimization (using MULTIPLE-VALUE-BIND instead of
+	  LET) makes the CVECTOR scheme much faster on SBCL
+	* More cleanups
+
+1.1.0 - 31 Mar 2008
+-------------------
+	* All schemes now cons much less and are faster (the previous
+	  code would build structures without need)
+	* Small optimizations
+	* Function names are now created using uppercase for symbols
+	  (GET-SCHEME instead of |GET-scheme|); thanks to Francis
+	  Leboutte for reporting this
+	* Cleaned up benchmarks a lot
+	* Cleaned up tests a bit
+
+1.0.1 - 10 Mar 2008
+-------------------
+	* Spartns again fully works with Allegro Common Lisp
+
+1.0.0 - 14 Feb 2008
+-------------------
+	* Fast traversals: if you know that the sparsity structure of
+	  your tensors will not change, you can traverse them *very*
+	  fast. EXCEPT for Allegro Common Lisp
+	* Equality test is now configurable (not just 'EQL, although
+	  'EQL is still the default)
+	* The CVECTOR scheme has been enhanced: cvectors will automatically
+	  be resized (by a configurable anmount) when they're full.
+	  EXCEPT for Allegro Common Lisp (it will signal an error)
+	* It is possible to "pack" sparse tensors, releasing unused memory.
+	  This is useful if you add an unknown number of elements to a
+	  tensor represented as CVECTORS, and end up with extra unused
+	  space.
+	  EXCEPT for Allegro Common Lisp
+	* Fix one-dimensional cvector spartns (the MAKE-* function was
+	  creating 0-dimensional arrays)
+	* Clarify the meaning of the :non-zeros key argument to defspartn
+	* Add a section to the manual explaining how to create tensors
+	  with unknown size, make them static and traverse quickly
+
+0.2.0 - 06 Feb 2008
+-------------------
+	* New feature: you can traverse several tensors, possibly
+	  stipulating that some indices are shared among tensors
+	  (think matrix multiplication, for example)
+	* Works with XCL now
+	* Tests are a bit more robust, but still far from good
+
+0.1.3 - 31 Jan 2008
+-------------------
+	* benchmark.lisp now adjusts maximum memory for Poplog, so all
+	  functions finish sucessfully
+	* spartn-copy was also broken; it has been fixed
+	* More tests added
+
+0.1.2 - 31 Jan 2008
+-------------------
+	* Fix traversals on the HASH representation scheme
+	* Fix the ARRAY representation scheme
+
+0.1.1 - 30 Jan 2008
+-------------------
+	* Now the HASH scheme works with Poplog
+	* Documentation updates
+
+0.1.0 - 30 Jan 2008
+-------------------
+	* New representation scheme, ARRAY, for dense dimensions
+
+0.0.4 - 29 Jan 2008
+-------------------
+	* cvector scheme has been slightly optimized. Conses less and
+	  is a bit faster
+	* Test utils.lisp, not just spartns
+	* Some internal cleanup and reorganization
+
+0.0.3 - 29 Jan 2008
+--------------------
+	* Reformatted changelog
+	* Some internal cleanup
+	* Tests work with GCL now
+
+0.0.2 - 28 Jan 2008
+--------------------
+	* ASDF installable
+	* Made package and tests more robust with eval-when
+	* Other minor changes
+
+0.0.1 - 27 Jan 2008
+--------------------
+	* Initial release
+
