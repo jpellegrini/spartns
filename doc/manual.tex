@@ -192,7 +192,7 @@ traversing over the others. For example, this
 
 \begin{lstlisting}
 (let ((j 5))
-  (traverse-3dmatrix ((i j k) v mat :dont-bind j)
+  (traverse-3dmatrix ((i j k) v mat :dont-bind (j))
     (format t "mat[~a ~a ~a] = a~%" i j k v)))
 \end{lstlisting}
 
