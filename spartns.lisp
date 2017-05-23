@@ -421,7 +421,7 @@ Example:
 					;		:element-type fixnum
 				   :end (the fixnum (1- (cvector-count ,cvec)))
 				   :not-found t)
-		  (if ,found ,pos 0)))
+	       ,pos))
 	       (,fixed-end (if (< ,end 0)
 			       (1- (cvector-count ,cvec))
 			       (multiple-value-bind (,pos ,found)
@@ -430,7 +430,7 @@ Example:
 					;			       :element-type fixnum
 						  :end (the fixnum (1- (cvector-count ,cvec)))
 						  :not-found t)
-				 (if ,found ,pos (1- (cvector-count ,cvec)))))))
+				 (if ,found ,pos  (- ,pos 1))))))
 	   ;; And traverse!
 	   (loop for ,i fixnum from ,fixed-start to ,fixed-end do
 	     (let ((,index  (aref (cvector-index ,cvec) ,i)))
