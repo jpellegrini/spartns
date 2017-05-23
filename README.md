@@ -2,6 +2,8 @@
 
 Spartns is a SPARse TeNSor representation library (if you don't know what a tensor is, think of it as a matrix with any number of dimensions, not just two). Spartns is distributed under the LLGPL license.
 
+[Download Spartns here](http://aleph0.info/spartns/)
+
 Features:
 
 *    No external dependencies (no BLAS or any other C/Fortran library needed). Just plain Common Lisp;
