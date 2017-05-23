@@ -10,20 +10,19 @@ file on your implementation before deciding to use it -- some
 implementations are very slow for some representation schemes).
 
 
-Current state:
+Current state (for version 1.4.5):
 --------------
 
-          1.4.3                   1.4.4
-ABCL      works                   works
-CLISP     works                   works
-Clozure   works                   ?
-CMUCL     works                   ?
-ECL       works                   works
-GCL       works                   with warnings
-LispWorks works                   ?
-Poplog    works                   ?
-SBCL      works                   works
-XCL       works                   works
+ABCL               works
+CLISP              works
+Clozure            ?
+CMUCL              ?
+ECL                works
+GCL                with warnings
+LispWorks          ?
+Poplog             ?
+SBCL               works
+XCL                works
 
 
 (*) Scieneer passes tests, but something is broken in benchmarks
