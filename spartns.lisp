@@ -388,23 +388,38 @@ element-type is used in type declarations inside the code; start and end are use
 for indices; setf is a flag that makes the method use SYMBOL-MACROLET instead of
 LET for the value binding (it is on by default).
 
-Example:
+An example follows (although the macro expansion is a bit convoluted):
  (macroexpand-1 '(spartns::do-traverse-cvector (i v d) b))
 
  ==>
 
- (LET ((#:FIXED-END-775 (1- (SPARTNS::CVECTOR-COUNT D))))
-   (LOOP SPARTNS::FOR #:I-774 FIXNUM SPARTNS::FROM 0 SPARTNS::TO
-         #:FIXED-END-775 DO
-         (LET ((I (AREF (SPARTNS::CVECTOR-INDEX D) #:I-774)))
-           (SYMBOL-MACROLET ((V
-                              (AREF
-                               (THE (SIMPLE-ARRAY T (*))
-                                    (SPARTNS::CVECTOR-VALUES D))
-                               #:I-774)))
-             (DECLARE (TYPE T V) (TYPE FIXNUM I))
-             B))))
- T"
+(WHEN (<= 0 (AREF (CVECTOR-INDEX D) (1- (CVECTOR-COUNT D))))
+  (LET ((#:FIXED-START-3597
+         (MULTIPLE-VALUE-BIND (#:POS-3599 #:FOUND-3600)
+             (BINARY-SEARCH 0 (CVECTOR-INDEX D) :END
+                            (THE FIXNUM (1- (CVECTOR-COUNT D))) :NOT-FOUND T)
+           #:POS-3599))
+        (#:FIXED-END-3598
+         (IF (< -1 0)
+             (1- (CVECTOR-COUNT D))
+             (MULTIPLE-VALUE-BIND (#:POS-3599 #:FOUND-3600)
+                 (BINARY-SEARCH -1 (CVECTOR-INDEX D) :END
+                                (THE FIXNUM (1- (CVECTOR-COUNT D))) :NOT-FOUND
+                                T)
+               (IF #:FOUND-3600
+                   #:POS-3599
+                   (- #:POS-3599 1))))))
+    (LOOP FOR #:I-3596 FIXNUM FROM #:FIXED-START-3597 TO #:FIXED-END-3598
+          DO (LET ((I (AREF (CVECTOR-INDEX D) #:I-3596)))
+               (SYMBOL-MACROLET ((V
+                                  (AREF
+                                   (THE (SIMPLE-ARRAY T (*))
+                                        (CVECTOR-VALUES D))
+                                   #:I-3596)))
+                 (DECLARE (TYPE T V)
+                          (TYPE FIXNUM I))
+                 B)))))
+T"
   ;; FIXME: start and end should be indices, and we should search those indices
   ;; and then traverse only that part of the cvector.
   (jp-utils:with-gensyms (i fixed-start fixed-end pos found)
