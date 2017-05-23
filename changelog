@@ -10,6 +10,11 @@ C: bugfixes and cleanups
 
 (This was not the case until 0.0.3)
 
+1.4.6 - 23 May 2017
+-------------------
+	* inclulde maunal.pdf in package
+	* package will now be distributed from GitHub
+
 1.4.5 - 23 May 2017
 -------------------
 	* Fixed do-traverse-cvector -- it behave in a completely wrong
