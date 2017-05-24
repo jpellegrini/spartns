@@ -451,8 +451,8 @@ T"
 	     (let ((,index  (aref (cvector-index ,cvec) ,i)))
 	       (,the-let ((,value  (aref (the (simple-array ,element-type (*))
 					   (cvector-values ,cvec)) ,i)))
-			 (declare (type ,element-type ,value)
-				  (type fixnum ,index))
+		               #-gcl (declare (type ,element-type ,value)
+                                       (type fixnum ,index))
 			 ,@body))))))))
 
 ;; We will add a representation scheme that uses cvectors:
