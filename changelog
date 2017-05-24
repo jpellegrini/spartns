@@ -10,6 +10,15 @@ C: bugfixes and cleanups
 
 (This was not the case until 0.0.3)
 
+1.4.7 - 24 May 2017
+-------------------
+	* put correct version in spartns.asd file
+	* fix GCL compatibility. it seems that GCL does not accept
+	  a DECLARE statement inside a SYMBOL-MACROLET when the
+	  SYMBOL-MACROLET itself is inside a LOOP. My interpretation
+	  of the spec is different, but -- anyway, I have disabled
+	  the DECLARE in do-traverse-cvector for now (for GCL only)
+
 1.4.6 - 23 May 2017
 -------------------
 	* inclulde maunal.pdf in package

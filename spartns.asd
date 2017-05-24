@@ -1,6 +1,6 @@
 (asdf:defsystem spartns
   :name "spartns"
-  :version "1.4.4"
+  :version "1.4.7"
   :maintainer "Jeronimo C. Pellegrini"
   :author "Jeronimo C. Pellegrini"
   :licence "LLGPL"
