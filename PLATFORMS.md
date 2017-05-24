@@ -16,15 +16,15 @@ Current state:
 ```
 ABCL               works
 CLISP              works
-Clozure            ?
-CMUCL              ?
+Clozure            works
+CMUCL              works (tested the 32bit binary on a 64bit platform; passes all tests)
 ECL                works
-GCL                with warnings
+GCL                works
 LispWorks          ?
-Mankai             works
+Mankai             fails 18 Spartns tests (but no spartns-utils tests)
 Poplog             ?
 SBCL               works
-XCL                works
+XCL                probably works (but I can't currently compile XCL)
 ```
 
 ==> Scieneer passes tests, but something is broken in benchmarks
