@@ -770,11 +770,15 @@ dont-bind is a list of indices not to bind."
 				   dont-bind
 				   &body body)
   "Traverses a sparse tensor, given:
-- A list of symbols (that will be bound to the indices)
-- A symbol to be bound to the value
-- The data
-- The representation scheme
-- The body"
+- index-list -- a list of symbols (that will be bound to the indices)
+- value -- a symbol to be bound to the value
+- data -- the data (of course)
+- rep-list -- the list of representation schemes
+- element-type -- the element type (we DECLARE its type for efficiency)
+- sparse-element -- the sparse element
+- test-equal -- the test to be used for equality
+- dont-bind -- a list of indices not to bind (these indices must be defined, and their value will be used.
+- body -- commands to be executed in each iteration, usig the bound symbols described above"
   (multiple-value-bind (make-empty-dims empty-dim-map)
       (make-empty-dimensions rep-list)
     (append make-empty-dims
@@ -1218,8 +1222,7 @@ The w/spartns S-expression will be expanded into:
        (let ((s (make-xyz)))
          (set-xyz s '(0 0 0) 0.5)
          ...)))"
-  
-  (let* ((empty-dim-defs (list))
+    (let* ((empty-dim-defs (list))
 	 (empty-dim-map  (make-hash-table))
 	 (macros
 	  (loop for spartn-scheme-name in spartn-list
@@ -1644,8 +1647,7 @@ to actually run through it.
 	 (SET-2D-MATRIX PROD (+ (* I 5) X) (+ (* J 5) Y) (* VAL-1 VAL-2)))))
 
 *NOTE*: When you do a fast-traversal, you are NOT operating on the original structures
-anymore, but on a copy (see the code above).
-"
+anymore, but on a copy (see the code above)."
   ;; make list of relevant indices
   (multiple-value-bind (type-list data-list value-symbol-list indices-list dont-binds)
       (split-traversal-descriptions traversal-list)
