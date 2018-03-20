@@ -53,5 +53,5 @@ Workarounds:
   be O(n); if it is smart enough to optimize this then it can be done in
   O(1))
 * GCL doesn't seem to accept a `DECLARE` statement inside a `SYMBOL-MACROLET`
-  which, in turn, is isnide a `LOOP` inside a `WHILE`. Type declarations inside `do-traverse-cvector` for GCL 
+  which, in turn, is inside a `LOOP` inside a `WHILE`. Type declarations inside `do-traverse-cvector` for GCL 
   is disabled for now.
