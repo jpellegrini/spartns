@@ -25,7 +25,9 @@ Documentation:
 
 Possible new representation schemes:
 - Particia trees for each dimension?
-- AVL trees or skip-lists?
+- AVL trees?
+- skip-lists?
+- Splay trees? (Could be interesting)
 - Chained hash: instead of (gethash i (gethash j data)), we can use
   (gethash `(,i ,j) data). This could be interleaved with other schemes
   if we're careful:
